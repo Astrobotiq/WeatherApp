@@ -1,24 +1,42 @@
+import tkinter as tk
+from tkinter import ttk
 import requests
 from bs4 import BeautifulSoup
 
-
 # Save user preferences to Settings.txt file
 def save_preferences(city, unit):
-    with open('Settings.txt', 'w') as file:
+    with open('Settings.txt', 'w', encoding='utf-8') as file:
         file.write(f"{city}, {unit}")
 
 
 # Function to Load user preferences from Settings.txt file
 def load_preferences():
     try:
-        with open('Settings.txt', 'r') as file:
+        with open('Settings.txt', 'r', encoding='utf-8') as file:
             preferences = file.read().split(',')
             city = preferences[0]
-            unit = preferences[1]
+            unit = preferences[1].strip() if len(preferences) > 1 else 'Celsius'
             return city, unit
     except FileNotFoundError:
         return None, None
 
+
+def switch_unit():
+    global default_unit
+    if default_unit == "Celsius":
+        default_unit = "Fahrenheit"
+    else:
+        default_unit = "Celsius"
+    switch_button.config(text=f"Switch to °{default_unit}")
+    save_preferences(default_city, default_unit)
+    # Here, you should update the weather information.
+
+
+def change_city(event):
+    global default_city
+    default_city = city.get()
+    save_preferences(default_city, default_unit)
+    # Here, you should update the weather information.
 
 # Load user preferences
 default_city, default_unit = load_preferences()
@@ -26,28 +44,33 @@ if default_city is None or default_unit is None:
     default_city = ''
     default_unit = 'Celsius'
 
-url = 'https://weather.com/weather/tenday/l/780a7c797ce1147202911c273e064fa4e2a0e516a14bb8aeb956331bbad0f637'
-x = requests.get(url)
+root = tk.Tk()
+root.title("Hava Durumu Uygulaması")
 
-soup = BeautifulSoup(x.content)
-time = soup.find('div', class_='DailyForecast--timestamp--22Azh')
-place = soup.find('span', class_='LocationPageTitle--PresentationName--1AMA6')
-days = soup.find_all('h3', class_='DetailsSummary--daypartName--kbngc')
-dayTemp = soup.find_all('span', class_='DetailsSummary--highTempValue--3PjlX')
-nightTemp = soup.find_all('span', class_='DetailsSummary--lowTempValue--2tesQ')
-weather = soup.find_all('span', class_='DetailsSummary--extendedData--307Ax')
-wind = soup.find_all('span', class_='Wind--windWrapper--3Ly7c DailyContent--value--1Jers')
+title = tk.Label(root, text="Hava Durumu Uygulaması", font=("Arial", 24), bg="lightblue")
+title.pack(fill=tk.X)
 
-# Test Save user preferences
-# selected_city = 'Istanbul'
-# selected_unit = 'Fahrenheit'
-# save_preferences(selected_city,selected_unit)
+city_label = tk.Label(root, text="Şehir")
+city_label.pack()
 
-##for i in range(14):
-##print(f"{place.text} \n {time.text}")
-##print(f'Day:{days[i].text}   {dayTemp[i].text}/{nightTemp[i].text}   Weather:{weather[i].text}   Wind:{wind[i].text}')
-##print("****************************************************************************")
+city = ttk.Combobox(root, values=["İstanbul", "Ankara", "İzmir"], state="readonly")
+city.set(default_city)
+city.bind("<<ComboboxSelected>>", change_city)
+city.pack()
 
+switch_button = tk.Button(root, text=f"Switch to °{default_unit}", command=switch_unit)
+switch_button.pack()
 
-##To-do:
-##Solve how to Calculate C from F
+day1_label = tk.Label(root, text="Gün 1: Veri Bekleniyor...")
+day1_label.pack()
+
+day2_label = tk.Label(root, text="Gün 2: Veri Bekleniyor...")
+day2_label.pack()
+
+day3_label = tk.Label(root, text="Gün 3: Veri Bekleniyor...")
+day3_label.pack()
+
+info_label = tk.Label(root, text="Ayarlar başarıyla yüklendi.", font=("Arial", 10), fg="green")
+info_label.pack()
+
+root.mainloop()

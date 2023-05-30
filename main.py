@@ -8,7 +8,12 @@ class WeatherFetcher:
     def __init__(self):
         self.url = ""
 
+    #dict = {"İzmir":'fe1876e1fd0d8cda3894eb7797379983e6591d215dbcd0279bc3181a8cf677f5', "123":1,}
+
     def set_url(self, city):
+        #BASE_URL = 'https://weather.com/weather/tenday/l/'
+        #ek_url = dict.values(city)
+        #self.url = BASE_URL+ek_url
         if city == "İzmir":
             self.url = "https://weather.com/weather/tenday/l/fe1876e1fd0d8cda3894eb7797379983e6591d215dbcd0279bc3181a8cf677f5"
         elif city == "İstanbul":
@@ -16,7 +21,7 @@ class WeatherFetcher:
         elif city == "Ankara":
             self.url = "https://weather.com/weather/tenday/l/3660a894e62874de91c47e04d57dc1985920d964073ba2df463f063b4cea26d3"
         else:
-            self.url = ""
+            self.url = "" #file.read(0) al stringe çevir base dict.get(aldigin veri)
 
     def fetch_weather(self):
         if not self.url:
@@ -44,19 +49,14 @@ class WeatherFetcher:
         return time.text, place.text, weather_data
 
 
-def convert_temp(unit, temp):
-    temp = temp.replace('°', '')  # Remove the degree symbol
-    converted_temp = round((float(temp) - 32) * 5 / 9)
-    if unit == 'Celsius':
-        return str(converted_temp) + '°C'
-    elif unit == 'Fahrenheit':
-        return str(round((converted_temp * 9 / 5) + 32)) + '°F'
-
-
-
-def convert_temp_fahrenheit(temp):
+def celsius_to_fahrenheit(temp):
     temp = temp.replace('°', '')  # Remove the degree symbol
     converted_temp = round((float(temp) * 9 / 5) + 32, 2)
+    return str(converted_temp)
+
+def fahrenheit_to_celsius(temp):
+    temp = temp.replace('°', '')  # Remove the degree symbol
+    converted_temp = round((float(temp) - 32) * 5 / 9, 2)
     return str(converted_temp)
 
 
@@ -77,35 +77,41 @@ def load_preferences():
         return None, None
 
 
+def get_switched_name(unit):
+    if unit == "Celsius": return 'Fahrenheit'
+    else: return 'Fahrenheit'
+
 def switch_unit():
-    global default_unit
+    global default_unit, weather_data
     if default_unit == "Celsius":
         default_unit = "Fahrenheit"
         for i, data in enumerate(weather_data):
             day, day_temp, night_temp, weather_info, wind_info = data
-            if i != 0:
-                day_temp = convert_temp_fahrenheit(day_temp)
-            night_temp = convert_temp_fahrenheit(night_temp)
             day_labels[i]['text'] = f'Day: {day}'
-            day_temp_labels[i]['text'] = f'Day Temperature: {day_temp}°{default_unit}'
-            night_temp_labels[i]['text'] = f'Night Temperature: {night_temp}°{default_unit}'
+            day_temp_labels[i]['text'] = f'Day Temperature: {day_temp}{default_unit}'
+            night_temp_labels[i]['text'] = f'Night Temperature: {night_temp}{default_unit}'
     else:
         default_unit = "Celsius"
         for i, data in enumerate(weather_data):
             day, day_temp, night_temp, weather_info, wind_info = data
-            if i != 0 :
-                day_temp = convert_temp(default_unit, day_temp)
-            night_temp = convert_temp(default_unit, night_temp)
+            day_temp = fahrenheit_to_celsius(day_temp)
+            night_temp = fahrenheit_to_celsius(night_temp)
             day_labels[i]['text'] = f'Day: {day}'
             day_temp_labels[i]['text'] = f'Day Temperature: {day_temp}°{default_unit}'
             night_temp_labels[i]['text'] = f'Night Temperature: {night_temp}°{default_unit}'
 
-    switch_button.config(text=f"Switch to °{default_unit}")
+    switch_button_text = ''
+    if default_unit == 'Fahrenheit':
+        switch_button_text = 'Celsius'
+    else:
+        switch_button_text = 'Fahrenheit'
+
+    switch_button.config(text=f"Switch to °{switch_button_text},")
     save_preferences(default_city, default_unit)
 
 
 def change_city(event):
-    global default_city
+    global default_city, weather_data
     default_city = city.get()
     fetcher.set_url(default_city)
     time, place, weather_data = fetcher.fetch_weather()
@@ -115,9 +121,9 @@ def change_city(event):
     for i, data in enumerate(weather_data):
         day, day_temp, night_temp, weather_info, wind_info = data
         day_labels[i]['text'] = f'Day: {day}'
-        day_temp_labels[i]['text'] = f'Day Temperature: {day_temp}'
-        night_temp_labels[i]['text'] = f'Night Temperature: {night_temp}'
-        weather_labels[i]['text'] = f'Weather: {weather_info}'
+        day_temp_labels[i]['text'] = f'Day Temperature: {day_temp} Fahrenheit'
+        night_temp_labels[i]['text'] = f'Night Temperature: {night_temp} Fahrenheit'
+        weather_labels[i]['text'] = f'Weather: {weather_info} Fahrenheit'
         wind_labels[i]['text'] = f'Wind: {wind_info}'
 
     save_preferences(default_city, default_unit)
@@ -134,27 +140,42 @@ fetcher.set_url(default_city)
 time, place, weather_data = fetcher.fetch_weather()
 
 root = tk.Tk()
+root.geometry("600x600")  # Set initial size
+root.resizable(True, True)  # Allow resizing
 root.title("Hava Durumu Uygulaması")
 
 title = tk.Label(root, text="Hava Durumu Uygulaması", font=("Arial", 24), bg="lightblue")
 title.pack(fill=tk.X)
 
-city_label = tk.Label(root, text="Şehir")
-city_label.pack()
+settings_frame = ttk.Frame(root, padding="10")  # Create a frame for settings
+settings_frame.pack(fill=tk.X)
 
-city = ttk.Combobox(root, values=["İstanbul", "Ankara", "İzmir"], state="readonly")
+city_label = tk.Label(settings_frame, text="Şehir")
+city_label.pack(side=tk.LEFT)
+
+
+city = ttk.Combobox(settings_frame, values=["İstanbul", "Ankara", "İzmir"], state="readonly")
 city.set(default_city)
 city.bind("<<ComboboxSelected>>", change_city)
-city.pack()
+city.pack(side=tk.LEFT)
 
-switch_button = tk.Button(root, text=f"Switch to °{default_unit}", command=lambda: switch_unit())
-switch_button.pack()
+switch_button = tk.Button(settings_frame, text=f"Switch to °Celsius", command=lambda: switch_unit(),bg="red",fg="white")
+switch_button.pack(side=tk.LEFT)
+ttk.Separator(root, orient='horizontal').pack(fill=tk.X)  # Add a separator
 
-time_label = tk.Label(root, text=f"Time: {time}" if time else "")
+info_frame = ttk.Frame(root, padding="10")  # Create a frame for information
+info_frame.pack(fill=tk.X)
+
+time_label = tk.Label(info_frame, text=f"Time: {time}" if time else "", font=("Arial", 16))
 time_label.pack()
 
-place_label = tk.Label(root, text=f"Place: {place}" if place else "")
+place_label = tk.Label(info_frame, text=f"Place: {place}" if place else "", font=("Arial", 16))
 place_label.pack()
+
+ttk.Separator(root, orient='horizontal').pack(fill=tk.X)  # Add a separator
+
+weather_frame = ttk.Frame(root, padding="10")  # Create a frame for weather
+weather_frame.pack(fill=tk.X)
 
 day_labels = []
 night_temp_labels = []
@@ -163,27 +184,33 @@ weather_labels = []
 wind_labels = []
 
 for _ in range(3):
-    day_label = tk.Label(root, text="")
+    day_label = tk.Label(weather_frame, text="")
     day_label.pack()
     day_labels.append(day_label)
 
-    day_temp_label = tk.Label(root, text="")
+    day_temp_label = tk.Label(weather_frame, text="")
     day_temp_label.pack()
     day_temp_labels.append(day_temp_label)
 
-    night_temp_label = tk.Label(root, text="")
+    night_temp_label = tk.Label(weather_frame, text="")
     night_temp_label.pack()
     night_temp_labels.append(night_temp_label)
 
-    weather_label = tk.Label(root, text="")
+    weather_label = tk.Label(weather_frame, text="")
     weather_label.pack()
     weather_labels.append(weather_label)
 
-    wind_label = tk.Label(root, text="")
+    wind_label = tk.Label(weather_frame, text="")
     wind_label.pack()
     wind_labels.append(wind_label)
 
+    if _ < 2:  # We don't need a separator after the last block
+        ttk.Separator(weather_frame, orient='horizontal').pack(fill=tk.X)  # Add a separator
+
 info_label = tk.Label(root, text="Ayarlar başarıyla yüklendi.", font=("Arial", 10), fg="green")
-info_label.pack()
+info_label.pack(pady=(10, 0))  # Decrease the space after the label
+
+status_bar = tk.Label(root, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W)  # Create status bar
+status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
 root.mainloop()

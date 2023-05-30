@@ -1,1 +1,1 @@
-Ankara, Celsius
+Ankara, Fahrenheit

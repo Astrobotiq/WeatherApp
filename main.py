@@ -140,7 +140,7 @@ time, place, weather_data = fetcher.fetch_weather()
 
 # Start the tkinter GUI
 root = tk.Tk()
-root.geometry("600x600")  # Set initial size
+root.geometry("600x650")  # Set initial size
 root.resizable(True, True)  # Allow resizing
 root.title("Weather App")
 
